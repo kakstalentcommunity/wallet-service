@@ -1,14 +1,24 @@
 spring:
   application:
     name: wallet-service
+  profiles:
+    default: dev
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/wallet}
     username: ${DB_USERNAME:wallet}
     password: ${DB_PASSWORD:wallet}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN:2}
+      connection-timeout: 30000
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
   flyway:
     enabled: true
 server:
@@ -69,6 +79,7 @@ management:
     health:
       probes:
         enabled: true
+      show-details: never
 springdoc:
   swagger-ui:
     enabled: true
@@ -77,7 +88,25 @@ spring:
   config:
     activate:
       on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN:2}
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+  flyway:
+    validate-on-migrate: true
 springdoc:
+  api-docs:
+    enabled: false
   swagger-ui:
     enabled: false
 wallet:
