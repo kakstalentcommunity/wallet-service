@@ -1,0 +1,85 @@
+spring:
+  application:
+    name: wallet-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/wallet}
+    username: ${DB_USERNAME:wallet}
+    password: ${DB_PASSWORD:wallet}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+server:
+  max-http-request-header-size: 8KB
+  shutdown: graceful
+wallet:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-wallet-secret-change-before-production-123456}
+    issuer: wallet-service
+    audience: wallet-api
+    access-ttl: PT15M
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  transfer:
+    minimum-amount-minor: ${TRANSFER_MINIMUM_MINOR:100}
+    maximum-amount-minor: ${TRANSFER_MAXIMUM_MINOR:150000000}
+    daily-limit-minor: ${TRANSFER_DAILY_LIMIT_MINOR:50000000}
+    currency: KES
+    fees:
+      - up-to-minor: 100000
+        flat-fee-minor: 100
+        basis-points: 0
+      - up-to-minor: 150000000
+        flat-fee-minor: 200
+        basis-points: 0
+  mpesa:
+    base-url: ${MPESA_BASE_URL:https://sandbox.safaricom.co.ke}
+    consumer-key: ${MPESA_CONSUMER_KEY:}
+    consumer-secret: ${MPESA_CONSUMER_SECRET:}
+    shortcode: ${MPESA_SHORTCODE:}
+    passkey: ${MPESA_PASSKEY:}
+    callback-base-url: ${MPESA_CALLBACK_BASE_URL:}
+    callback-token: ${MPESA_CALLBACK_TOKEN:}
+    allowed-callback-ips: ${MPESA_CALLBACK_ALLOWED_IPS:}
+    connect-timeout-millis: ${MPESA_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-millis: ${MPESA_READ_TIMEOUT_MS:10000}
+  b2c:
+    mock-success: ${B2C_MOCK_SUCCESS:true}
+    mock-delay-millis: ${B2C_MOCK_DELAY_MS:1500}
+  fraud:
+    transfers-per-minute: ${FRAUD_TRANSFERS_PER_MINUTE:10}
+    single-amount-flag-minor: ${FRAUD_SINGLE_AMOUNT_FLAG_MINOR:10000000}
+    new-recipients-window-minutes: ${FRAUD_NEW_RECIPIENTS_WINDOW_MINUTES:10}
+    new-recipients-limit: ${FRAUD_NEW_RECIPIENTS_LIMIT:5}
+    repeated-failed-login-count: ${FRAUD_FAILED_LOGIN_COUNT:5}
+  notifications:
+    africas-talking:
+      username: ${AT_USERNAME:}
+      api-key: ${AT_API_KEY:}
+      sender-id: ${AT_SENDER_ID:}
+      base-url: ${AT_BASE_URL:https://api.sandbox.africastalking.com}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+springdoc:
+  swagger-ui:
+    enabled: true
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+springdoc:
+  swagger-ui:
+    enabled: false
+wallet:
+  jwt:
+    secret: ${JWT_SECRET:}
