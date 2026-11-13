@@ -18,3 +18,13 @@
 - Reversals never mutate ledger rows. A completed transaction is reversed by posting a new transaction with opposite entries, then transitioning the source transaction to `REVERSED`.
 - Fraud rules block excessive transfer velocity and new-recipient velocity, flag unusually large transfers and repeated login failures, and record only reason codes and transaction identifiers in audit details.
 - Payment SMS events are delivered after commit. A listener retries three times and isolates failures; the development implementation logs only a masked number, while production uses Africa's Talking credentials supplied by the environment.
+
+## Production and test decisions
+
+- PostgreSQL is the source of truth in dev and prod. H2 is limited to fast unit/context tests; Testcontainers runs migration and PostgreSQL-specific checks against PostgreSQL 16 when Docker is available.
+- Testcontainers tests use `disabledWithoutDocker=true` so a developer without a container runtime can still run unit tests. CI uses Ubuntu with Docker and executes those integration tests.
+- The service-layer JaCoCo gate is enforced by `mvn verify`. Integration scenarios are included in coverage when they run.
+- Hikari pool bounds and Hibernate UTC handling are configured explicitly. Database timestamps use PostgreSQL `TIMESTAMPTZ` and Java `Instant`.
+- Public Actuator access is limited to health probes and info; other exposed Actuator endpoints are ADMIN-only. Production disables Swagger UI and OpenAPI publication.
+- OWASP Dependency-Check runs in CI on pushes and pull requests and fails for findings with CVSS 7.0 or higher. CI should have an `NVD_API_KEY` secret to avoid external API throttling.
+- Reversals are authorized by the ADMIN role and require an idempotency key, so retrying an operator action does not create a second reversal.
