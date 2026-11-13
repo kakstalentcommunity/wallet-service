@@ -63,8 +63,7 @@ class TransferServiceTest {
         Account senderAccount = new Account(sender); senderAccount.applyBalanceDelta(5_000);
         Account receiverAccount = new Account(receiver);
         Account feeAccount = mock(Account.class);
-        when(feeAccount.getId()).thenReturn(UUID.randomUUID()); when(feeAccount.isActive()).thenReturn(true);
-        when(feeAccount.getCurrency()).thenReturn("KES");
+        when(feeAccount.getId()).thenReturn(UUID.randomUUID());
         when(users.findById(sender.getId())).thenReturn(Optional.of(sender));
         when(users.findByPhone(receiver.getPhone())).thenReturn(Optional.of(receiver));
         when(accounts.findByUser_Id(sender.getId())).thenReturn(Optional.of(senderAccount));
