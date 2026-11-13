@@ -14,11 +14,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TransferServiceTest {
@@ -78,8 +79,8 @@ class TransferServiceTest {
         var receipt = service.transfer(sender.getId(), "success-key-01", 500, receiver.getPhone());
 
         assertEquals("WLT-NEW", receipt.referenceCode());
-        verify(ledger).post(argThat(draft -> draft.amountMinor() == 500L && draft.feeMinor() == 100L),
-                argThat(lines -> lines.size() == 3 && lines.stream().mapToLong(line -> line.direction() == Direction.DEBIT ? line.amountMinor() : -line.amountMinor()).sum() == 0));
+        verify(ledger).post(argThat((LedgerService.TransactionDraft draft) -> draft.amountMinor() == 500L && draft.feeMinor() == 100L),
+                argThat((List<LedgerService.LedgerLine> lines) -> lines.size() == 3 && lines.stream().mapToLong(line -> line.direction() == Direction.DEBIT ? line.amountMinor() : -line.amountMinor()).sum() == 0));
         verify(audit).record(eq(sender.getId()), eq("TRANSFER_COMPLETED"), anyMap());
         verify(events).publishEvent(any(PaymentCompletedEvent.class));
     }
