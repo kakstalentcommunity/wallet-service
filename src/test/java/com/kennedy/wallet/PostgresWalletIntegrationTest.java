@@ -1,9 +1,12 @@
 package com.kennedy.wallet;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kennedy.wallet.domain.*;
 import com.kennedy.wallet.repository.*;
 import com.kennedy.wallet.service.*;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,17 +23,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @SpringBootTest
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)
 class PostgresWalletIntegrationTest {
     @Container
-    static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine")
-            .withDatabaseName("wallet")
-            .withUsername("wallet")
-            .withPassword("wallet");
+    static final PostgreSQLContainer postgres =
+            new PostgreSQLContainer("postgres:16-alpine")
+                    .withDatabaseName("wallet")
+                    .withUsername("wallet")
+                    .withPassword("wallet");
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry properties) {
@@ -73,25 +75,38 @@ class PostgresWalletIntegrationTest {
         var recipient = auth.register("0712345103", "test-password-123");
         fund(sender, 10_000);
 
-        var receipt = transfers.transfer(sender.getId(), "pg-transfer-0001", 500, recipient.getPhone());
-        var replay = transfers.transfer(sender.getId(), "pg-transfer-0001", 500, recipient.getPhone());
+        var receipt =
+                transfers.transfer(sender.getId(), "pg-transfer-0001", 500, recipient.getPhone());
+        var replay =
+                transfers.transfer(sender.getId(), "pg-transfer-0001", 500, recipient.getPhone());
         assertEquals(receipt.transactionId(), replay.transactionId());
-        assertThrows(TransferService.IdempotencyConflictException.class,
-                () -> transfers.transfer(sender.getId(), "pg-transfer-0001", 501, recipient.getPhone()));
-        assertThrows(IllegalArgumentException.class,
-                () -> transfers.transfer(sender.getId(), "pg-transfer-0002", 20_000, recipient.getPhone()));
+        assertThrows(
+                TransferService.IdempotencyConflictException.class,
+                () ->
+                        transfers.transfer(
+                                sender.getId(), "pg-transfer-0001", 501, recipient.getPhone()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        transfers.transfer(
+                                sender.getId(), "pg-transfer-0002", 20_000, recipient.getPhone()));
     }
 
     @Test
     void duplicateMpesaCallbackCreditsTheWalletOnlyOnce() throws Exception {
         var user = auth.register("0712345104", "test-password-123");
-        var pending = deposits.createPending(user.getId(), "pg-deposit-0001", user.getPhone(), 1_200, "a".repeat(64));
-        deposits.attachProviderResponse(pending.requestId(), new MpesaClient.StkResponse(
-                "merchant-1", "checkout-1", "0", "accepted", "sent"));
-        var callback = objectMapper.readTree("""
-                {"Body":{"stkCallback":{"CheckoutRequestID":"checkout-1","ResultCode":0,
-                 "CallbackMetadata":{"Item":[{"Name":"Amount","Value":12},{"Name":"PhoneNumber","Value":254712345104}]}}}
-                """);
+        var pending =
+                deposits.createPending(
+                        user.getId(), "pg-deposit-0001", user.getPhone(), 1_200, "a".repeat(64));
+        deposits.attachProviderResponse(
+                pending.requestId(),
+                new MpesaClient.StkResponse("merchant-1", "checkout-1", "0", "accepted", "sent"));
+        var callback =
+                objectMapper.readTree(
+                        """
+                        {"Body":{"stkCallback":{"CheckoutRequestID":"checkout-1","ResultCode":0,
+                         "CallbackMetadata":{"Item":[{"Name":"Amount","Value":12},{"Name":"PhoneNumber","Value":254712345104}]}}}
+                        """);
 
         deposits.receiveCallback("checkout-1", callback);
         deposits.receiveCallback("checkout-1", callback);
@@ -100,17 +115,30 @@ class PostgresWalletIntegrationTest {
         var transaction = transactions.findById(pending.transactionId()).orElseThrow();
         assertEquals(TransactionStatus.COMPLETED, transaction.getStatus());
         assertEquals(2, entries.findByTransaction_Id(transaction.getId()).size());
-        assertTrue(depositRequests.findByTransaction_Id(transaction.getId()).orElseThrow().getRawCallback().isObject());
+        assertTrue(
+                depositRequests
+                        .findByTransaction_Id(transaction.getId())
+                        .orElseThrow()
+                        .getRawCallback()
+                        .isObject());
     }
 
     @Test
     void postgresTriggerRejectsLedgerEntryMutation() {
         var sender = auth.register("0712345105", "test-password-123");
         fund(sender, 2_000);
-        var entryId = jdbc.queryForObject("select id from ledger_entries order by created_at desc limit 1", UUID.class);
+        var entryId =
+                jdbc.queryForObject(
+                        "select id from ledger_entries order by created_at desc limit 1",
+                        UUID.class);
         assertNotNull(entryId);
-        assertThrows(RuntimeException.class,
-                () -> jdbc.update("update ledger_entries set amount_minor = amount_minor + 1 where id = ?", entryId));
+        assertThrows(
+                RuntimeException.class,
+                () ->
+                        jdbc.update(
+                                "update ledger_entries set amount_minor = amount_minor + 1 where id"
+                                    + " = ?",
+                                entryId));
     }
 
     @Test
@@ -123,26 +151,47 @@ class PostgresWalletIntegrationTest {
             var tasks = new ArrayList<CompletableFuture<?>>();
             for (int i = 0; i < 100; i++) {
                 int transfer = i;
-                tasks.add(CompletableFuture.runAsync(() -> transfers.transfer(sender.getId(),
-                        "parallel-key-%04d".formatted(transfer), 100, recipient.getPhone()), executor));
+                tasks.add(
+                        CompletableFuture.runAsync(
+                                () ->
+                                        transfers.transfer(
+                                                sender.getId(),
+                                                "parallel-key-%04d".formatted(transfer),
+                                                100,
+                                                recipient.getPhone()),
+                                executor));
             }
-            CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).get(90, TimeUnit.SECONDS);
+            CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new))
+                    .get(90, TimeUnit.SECONDS);
         }
 
-        assertEquals(10_000, accounts.findByUser_Id(sender.getId()).orElseThrow().getBalanceMinor());
-        assertEquals(10_000, accounts.findByUser_Id(recipient.getId()).orElseThrow().getBalanceMinor());
+        assertEquals(
+                10_000, accounts.findByUser_Id(sender.getId()).orElseThrow().getBalanceMinor());
+        assertEquals(
+                10_000, accounts.findByUser_Id(recipient.getId()).orElseThrow().getBalanceMinor());
         assertTrue(accounts.findByUser_Id(sender.getId()).orElseThrow().getBalanceMinor() >= 0);
-        long[] totals = jdbc.queryForObject("select coalesce(sum(case when direction='DEBIT' then amount_minor else 0 end),0), " +
-                "coalesce(sum(case when direction='CREDIT' then amount_minor else 0 end),0) from ledger_entries", (rs, row) ->
-                new long[]{rs.getLong(1), rs.getLong(2)});
+        long[] totals =
+                jdbc.queryForObject(
+                        "select coalesce(sum(case when direction='DEBIT' then amount_minor else 0"
+                            + " end),0), coalesce(sum(case when direction='CREDIT' then"
+                            + " amount_minor else 0 end),0) from ledger_entries",
+                        (rs, row) -> new long[] {rs.getLong(1), rs.getLong(2)});
         assertEquals(totals[0], totals[1]);
     }
 
     private void fund(User user, long amount) {
         var wallet = accounts.findByUser_Id(user.getId()).orElseThrow();
         var clearing = accounts.findByCode("MPESA_CLEARING").orElseThrow();
-        ledger.post(new LedgerService.TransactionDraft(TransactionType.ADJUSTMENT, TransactionStatus.COMPLETED, "KES", user.getId()),
-                List.of(new LedgerService.LedgerLine(clearing.getId(), Direction.DEBIT, amount, "KES"),
-                        new LedgerService.LedgerLine(wallet.getId(), Direction.CREDIT, amount, "KES")));
+        ledger.post(
+                new LedgerService.TransactionDraft(
+                        TransactionType.ADJUSTMENT,
+                        TransactionStatus.COMPLETED,
+                        "KES",
+                        user.getId()),
+                List.of(
+                        new LedgerService.LedgerLine(
+                                clearing.getId(), Direction.DEBIT, amount, "KES"),
+                        new LedgerService.LedgerLine(
+                                wallet.getId(), Direction.CREDIT, amount, "KES")));
     }
 }

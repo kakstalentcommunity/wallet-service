@@ -1,3 +1,26 @@
 package com.kennedy.wallet.controller;
-import org.springframework.web.bind.annotation.*;import org.springframework.security.core.Authentication;import io.swagger.v3.oas.annotations.Operation;import io.swagger.v3.oas.annotations.security.SecurityRequirement;import io.swagger.v3.oas.annotations.responses.ApiResponse;import io.swagger.v3.oas.annotations.responses.ApiResponses;import io.swagger.v3.oas.annotations.tags.Tag;
-@RestController @RequestMapping("/api/me") @Tag(name="Accounts") @SecurityRequirement(name="bearerAuth") public class MeController {@GetMapping @Operation(summary="Get the authenticated user's profile identifier") @ApiResponses({@ApiResponse(responseCode="200",description="User identifier returned"),@ApiResponse(responseCode="401",description="Authentication required")}) public Object me(Authentication authentication){return java.util.Map.of("userId",authentication.getName());}}
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/me")
+@Tag(name = "Accounts")
+@SecurityRequirement(name = "bearerAuth")
+public class MeController {
+    @GetMapping
+    @Operation(summary = "Get the authenticated user's profile identifier")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "User identifier returned"),
+        @ApiResponse(responseCode = "401", description = "Authentication required")
+    })
+    public Object me(Authentication authentication) {
+        return java.util.Map.of("userId", authentication.getName());
+    }
+}

@@ -1,14 +1,16 @@
 package com.kennedy.wallet;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.kennedy.wallet.config.WalletProperties;
 import com.kennedy.wallet.domain.User;
 import com.kennedy.wallet.service.JwtService;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class JwtServiceTest {
-    @Test void issuedTokenCarriesValidatedIssuerAudienceExpiryAndJti() {
+    @Test
+    void issuedTokenCarriesValidatedIssuerAudienceExpiryAndJti() {
         WalletProperties properties = new WalletProperties();
         properties.getJwt().setSecret("test-key-with-more-than-32-bytes-long-for-hmac");
         JwtService service = new JwtService(properties);
