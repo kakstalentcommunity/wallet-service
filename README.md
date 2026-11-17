@@ -12,7 +12,7 @@ A Spring Boot 4 wallet backend for Kenyan phone numbers and KES payments. The se
 - Daraja STK Push deposits with tokenized callback path, request matching, duplicate delivery handling, status polling, and expiry.
 - Withdrawal holds, asynchronous B2C mock, automatic failure reversal, and administrator reversal records.
 - Configurable velocity and amount fraud rules, security audit log, and after-commit SMS notifications.
-- OpenAPI docs in dev, Actuator health and info endpoints, PostgreSQL Testcontainers suite, JaCoCo service coverage gate, and CI dependency scanning.
+- A responsive wallet UI for sign-in, balances, activity, transfers, M-Pesa deposits, and withdrawals. OpenAPI docs in dev, Actuator health and info endpoints, PostgreSQL Testcontainers suite, JaCoCo service coverage gate, and CI dependency scanning.
 
 ## Architecture
 
@@ -64,7 +64,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The API listens on `http://localhost:8080`; PostgreSQL is bound to localhost on port `5432`. Flyway applies migrations at startup. The app health endpoint is `GET /actuator/health`. Swagger UI and OpenAPI are available in dev at `/swagger-ui/index.html` and `/v3/api-docs`.
+The wallet UI is available at `http://localhost:8081`; sign up or sign in there to view balances and activity, send transfers, and request M-Pesa deposits or withdrawals. Swagger UI for developers is at `http://localhost:8081/swagger-ui/index.html`; the health endpoint is `GET /actuator/health`. PostgreSQL is bound to localhost on port `5433` for optional local database tools. Flyway applies migrations at startup.
 
 ## Run locally
 
