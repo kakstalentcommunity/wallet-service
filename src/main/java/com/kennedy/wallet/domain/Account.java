@@ -73,4 +73,8 @@ public class Account {
         if (accountType == AccountType.USER && balanceMinor < 0)
             throw new IllegalStateException("Wallet balance cannot be negative");
     }
+
+    public void adjustBalanceForLedger(long delta) {
+        balanceMinor = Math.addExact(balanceMinor, delta);
+    }
 }

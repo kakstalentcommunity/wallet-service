@@ -94,7 +94,11 @@ public class LedgerService {
                     line.direction() == Direction.CREDIT ? line.amountMinor() : -line.amountMinor();
             deltas.merge(line.accountId(), delta, Math::addExact);
         }
-        deltas.forEach((id, delta) -> byId.get(id).applyBalanceDelta(delta));
+        deltas.forEach(
+                (id, delta) -> {
+                    Account account = byId.get(id);
+                    account.adjustBalanceForLedger(delta);
+                });
 
         WalletTransaction persisted = transactions.save(transaction);
         List<LedgerEntry> newEntries =
@@ -109,7 +113,6 @@ public class LedgerService {
                                                 line.currency()))
                         .toList();
         entries.saveAll(newEntries);
-        accounts.saveAll(lockedAccounts);
         return persisted;
     }
 

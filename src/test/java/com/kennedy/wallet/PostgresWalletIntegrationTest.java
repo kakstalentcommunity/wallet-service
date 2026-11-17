@@ -105,7 +105,7 @@ class PostgresWalletIntegrationTest {
                 objectMapper.readTree(
                         """
                         {"Body":{"stkCallback":{"CheckoutRequestID":"checkout-1","ResultCode":0,
-                         "CallbackMetadata":{"Item":[{"Name":"Amount","Value":12},{"Name":"PhoneNumber","Value":254712345104}]}}}
+                         "CallbackMetadata":{"Item":[{"Name":"Amount","Value":12},{"Name":"PhoneNumber","Value":254712345104}]}}}}
                         """);
 
         deposits.receiveCallback("checkout-1", callback);

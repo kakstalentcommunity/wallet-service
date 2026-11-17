@@ -50,6 +50,7 @@ class LedgerServiceTest {
                         new LedgerService.LedgerLine(debit.getId(), Direction.DEBIT, 500, "KES"),
                         new LedgerService.LedgerLine(credit.getId(), Direction.CREDIT, 500, "KES"));
         when(accounts.findAllForUpdateByIdInOrderById(any())).thenReturn(List.of(debit, credit));
+        when(accounts.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(transactions.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         WalletTransaction posted = ledger.post(draft, lines);
@@ -84,6 +85,7 @@ class LedgerServiceTest {
                         new LedgerService.LedgerLine(credit.getId(), Direction.DEBIT, 100, "KES"),
                         new LedgerService.LedgerLine(debit.getId(), Direction.CREDIT, 100, "KES"));
         when(accounts.findAllForUpdateByIdInOrderById(any())).thenReturn(List.of(debit, credit));
+        when(accounts.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
         assertThrows(IllegalStateException.class, () -> ledger.post(draft, lines));
         verifyNoInteractions(transactions, entries);
     }
