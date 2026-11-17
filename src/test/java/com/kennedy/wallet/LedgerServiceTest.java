@@ -13,6 +13,7 @@ import com.kennedy.wallet.service.LedgerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import jakarta.persistence.EntityManager;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -24,13 +25,14 @@ class LedgerServiceTest {
     @Mock AccountRepository accounts;
     @Mock WalletTransactionRepository transactions;
     @Mock LedgerEntryRepository entries;
+    @Mock EntityManager entityManager;
     LedgerService ledger;
     Account debit;
     Account credit;
 
     @BeforeEach
     void setUp() {
-        ledger = new LedgerService(accounts, transactions, entries);
+        ledger = new LedgerService(accounts, transactions, entries, entityManager);
         User user = new User("+254712345678", "encoded");
         debit = new Account(user);
         credit = new Account(new User("+254112345678", "encoded"));
@@ -50,7 +52,6 @@ class LedgerServiceTest {
                         new LedgerService.LedgerLine(debit.getId(), Direction.DEBIT, 500, "KES"),
                         new LedgerService.LedgerLine(credit.getId(), Direction.CREDIT, 500, "KES"));
         when(accounts.findAllForUpdateByIdInOrderById(any())).thenReturn(List.of(debit, credit));
-        when(accounts.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(transactions.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         WalletTransaction posted = ledger.post(draft, lines);
@@ -85,7 +86,6 @@ class LedgerServiceTest {
                         new LedgerService.LedgerLine(credit.getId(), Direction.DEBIT, 100, "KES"),
                         new LedgerService.LedgerLine(debit.getId(), Direction.CREDIT, 100, "KES"));
         when(accounts.findAllForUpdateByIdInOrderById(any())).thenReturn(List.of(debit, credit));
-        when(accounts.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
         assertThrows(IllegalStateException.class, () -> ledger.post(draft, lines));
         verifyNoInteractions(transactions, entries);
     }

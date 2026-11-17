@@ -7,6 +7,8 @@ import com.kennedy.wallet.repository.WalletTransactionRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 
 import java.util.*;
 
@@ -15,14 +17,17 @@ public class LedgerService {
     private final AccountRepository accounts;
     private final WalletTransactionRepository transactions;
     private final LedgerEntryRepository entries;
+    private final EntityManager entityManager;
 
     public LedgerService(
             AccountRepository accounts,
             WalletTransactionRepository transactions,
-            LedgerEntryRepository entries) {
+            LedgerEntryRepository entries,
+            EntityManager entityManager) {
         this.accounts = accounts;
         this.transactions = transactions;
         this.entries = entries;
+        this.entityManager = entityManager;
     }
 
     /**
@@ -81,6 +86,8 @@ public class LedgerService {
         List<Account> lockedAccounts = accounts.findAllForUpdateByIdInOrderById(accountIds);
         if (lockedAccounts.size() != accountIds.size())
             throw new IllegalArgumentException("One or more accounts do not exist");
+        lockedAccounts.forEach(
+                account -> entityManager.refresh(account, LockModeType.PESSIMISTIC_WRITE));
         Map<UUID, Account> byId = new HashMap<>();
         lockedAccounts.forEach(account -> byId.put(account.getId(), account));
         Map<UUID, Long> deltas = new HashMap<>();
@@ -97,7 +104,7 @@ public class LedgerService {
         deltas.forEach(
                 (id, delta) -> {
                     Account account = byId.get(id);
-                    account.adjustBalanceForLedger(delta);
+                    account.applyBalanceDelta(delta);
                 });
 
         WalletTransaction persisted = transactions.save(transaction);
@@ -113,6 +120,7 @@ public class LedgerService {
                                                 line.currency()))
                         .toList();
         entries.saveAll(newEntries);
+        accounts.saveAll(lockedAccounts);
         return persisted;
     }
 

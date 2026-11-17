@@ -12,6 +12,7 @@ import com.kennedy.wallet.service.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import jakarta.persistence.EntityManager;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -32,6 +33,7 @@ class TransferServiceTest {
     @Mock FraudService fraud;
     @Mock AuditService audit;
     @Mock ApplicationEventPublisher events;
+    @Mock EntityManager entityManager;
     FeeService fees;
     TransferService service;
     UUID actor;
@@ -42,7 +44,16 @@ class TransferServiceTest {
         fees = new FeeService(props);
         service =
                 new TransferService(
-                        users, accounts, transactions, ledger, fees, props, fraud, audit, events);
+                        users,
+                        accounts,
+                        transactions,
+                        ledger,
+                        fees,
+                        props,
+                        fraud,
+                        audit,
+                        events,
+                        entityManager);
         actor = UUID.randomUUID();
     }
 

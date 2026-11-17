@@ -7,6 +7,8 @@ import com.kennedy.wallet.repository.*;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -24,6 +26,7 @@ public class TransferService {
     private final AuditService audit;
     private final ApplicationEventPublisher events;
     private final WalletProperties.Transfer config;
+    private final EntityManager entityManager;
 
     public TransferService(
             UserRepository users,
@@ -34,7 +37,8 @@ public class TransferService {
             WalletProperties properties,
             FraudService fraud,
             AuditService audit,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events,
+            EntityManager entityManager) {
         this.users = users;
         this.accounts = accounts;
         this.transactions = transactions;
@@ -44,6 +48,7 @@ public class TransferService {
         this.fraud = fraud;
         this.audit = audit;
         this.events = events;
+        this.entityManager = entityManager;
         if (config.getMinimumAmountMinor() <= 0
                 || config.getMaximumAmountMinor() < config.getMinimumAmountMinor()
                 || config.getDailyLimitMinor() < config.getMinimumAmountMinor())
@@ -98,6 +103,8 @@ public class TransferService {
                 accounts.findAllForUpdateByIdInOrderById(
                         new TreeSet<>(List.of(senderAccount.getId(), receiverAccount.getId())));
         if (locked.size() != 2) throw recipientUnavailable();
+        locked.forEach(
+                account -> entityManager.refresh(account, LockModeType.PESSIMISTIC_WRITE));
         Map<UUID, Account> lockedById = new HashMap<>();
         locked.forEach(account -> lockedById.put(account.getId(), account));
         senderAccount = lockedById.get(senderAccount.getId());
